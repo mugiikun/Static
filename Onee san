@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mugi & Onee-san Kawaii</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(to bottom, #fff0f3, #ffccd5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Comic Sans MS', cursive;
+            min-height: 100vh;
+        }
+        .header { text-align: center; color: #ff4d6d; padding: 10px; }
+        #game-container {
+            width: 95vw;
+            max-width: 800px;
+            aspect-ratio: 2 / 1;
+            border: 5px solid white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(255, 77, 109, 0.4);
+            overflow: hidden;
+            background: #fff;
+        }
+        .footer-deco { font-size: 30px; margin: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2 style="margin:5px;">🐾 Mugi's Heart Quest 🌸</h2>
+    </div>
+
+    <div id="game-container"></div>
+
+    <div class="footer-deco">🐶 🍰 🌸 🐶</div>
+
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            parent: 'game-container',
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                width: 800,
+                height: 400
+            },
+            physics: { default: 'arcade' },
+            scene: { create: create, update: update }
+        };
+
+        let mugi, oneesan, cursors, scoreText;
+        let mugiBubble, oneeBubble;
+        let attempts = 0;
+        let isGameOver = false;
+
+        const mugiLines = [
+            "Onee Kawaii-san! ✨", "Onee Aishiteru-san! ❤️", "Please forgive me! 🙏",
+            "I brought cake! 🍰", "Don't run away! 🏃‍♂️", "Gomen nasai! 💐",
+            "Onee-san is the best! 🌟", "Look at these flowers! 🌹", "I'm so sorry! 🥺", "I caught you! 💖"
+        ];
+
+        const oneeLines = [
+            "Mugi wa baka! 💢", "Mugi wa hidoi! 😡", "Yamete! ✋", 
+            "Don't call me Omae! 😤", "Hmpf! 💨", "Too slow! 💨",
+            "No cake for me! 🍰❌", "Baka baka! 👅", "Stop chasing! 🏃‍♀️💨", "Kawaiii ne Mugi! 🥰"
+        ];
+
+        new Phaser.Game(config);
+
+        function createBubble(scene, x, y, text) {
+            let container = scene.add.container(x, y);
+            let bg = scene.add.graphics();
+            bg.fillStyle(0xffffff, 0.9);
+            bg.fillRoundedRect(-60, -60, 120, 40, 10);
+            bg.lineStyle(2, 0xff4d6d, 1);
+            bg.strokeRoundedRect(-60, -60, 120, 40, 10);
+            
+            let content = scene.add.text(0, -40, text, {
+                fontSize: '12px', color: '#ff4d6d', align: 'center', wordWrap: { width: 110 }
+            }).setOrigin(0.5);
+            
+            container.add([bg, content]);
+            container.setAlpha(0);
+            return container;
+        }
+
+        function create() {
+            // Mugi Setup
+            mugi = this.add.container(100, 200);
+            mugi.add([this.add.circle(0, 0, 25, 0x74c0fc), this.add.text(-12, -15, '👦', {fontSize:'25px'})]);
+            this.physics.add.existing(mugi);
+            mugi.body.setCollideWorldBounds(true);
+
+            // Onee-san Setup
+            oneesan = this.add.container(600, 200);
+            oneesan.add([this.add.circle(0, 0, 25, 0xff85a1), this.add.text(-12, -15, '👧', {fontSize:'25px'})]);
+            this.physics.add.existing(oneesan);
+            oneesan.body.setCollideWorldBounds(true);
+
+            // Dialogue Bubbles
+            mugiBubble = createBubble(this, 0, 0, "");
+            oneeBubble = createBubble(this, 0, 0, "");
+
+            scoreText = this.add.text(20, 20, 'Tries: 0/10', { color: '#ff4d6d', fontSize: '20px', fontStyle: 'bold' });
+            cursors = this.input.keyboard.createCursorKeys();
+
+            // Collision
+            this.physics.add.overlap(mugi, oneesan, () => {
+                if(isGameOver) return;
+                
+                // Show Heart Particle
+                let heart = this.add.text(oneesan.x, oneesan.y, '❤️', { fontSize: '30px' });
+                this.tweens.add({ targets: heart, y: heart.y - 100, alpha: 0, duration: 1000 });
+
+                attempts++;
+                scoreText.setText(`Tries: ${attempts}/10`);
+
+                // Update Dialogue
+                mugiBubble.list[1].setText(mugiLines[attempts-1] || mugiLines[0]);
+                oneeBubble.list[1].setText(oneeLines[attempts-1] || oneeLines[0]);
+                mugiBubble.setAlpha(1);
+                oneeBubble.setAlpha(1);
+
+                if(attempts < 10) {
+                    oneesan.x = Phaser.Math.Between(100, 700);
+                    oneesan.y = Phaser.Math.Between(100, 300);
+                } else {
+                    isGameOver = true;
+                    oneeBubble.list[1].setText("Kawaiii ne Mugi! 🥰❤️");
+                    this.add.text(400, 200, '💖 HAPPY ENDING 💖', { fontSize: '50px', fill: '#ff4d6d' }).setOrigin(0.5);
+                }
+            });
+        }
+
+        function update() {
+            if (isGameOver) {
+                mugi.body.setVelocity(0);
+                oneesan.body.setVelocity(0);
+                return;
+            }
+
+            // Move Bubbles with Characters
+            mugiBubble.setPosition(mugi.x, mugi.y - 40);
+            oneeBubble.setPosition(oneesan.x, oneesan.y - 40);
+
+            // Controls
+            mugi.body.setVelocity(0);
+            if (this.input.activePointer.isDown) {
+                this.physics.moveToObject(mugi, this.input.activePointer, 320);
+            } else {
+                if (cursors.left.isDown) mugi.body.setVelocityX(-320);
+                else if (cursors.right.isDown) mugi.body.setVelocityX(320);
+                if (cursors.up.isDown) mugi.body.setVelocityY(-320);
+                else if (cursors.down.isDown) mugi.body.setVelocityY(320);
+            }
+
+            // Flee AI
+            let dist = Phaser.Math.Distance.Between(mugi.x, mugi.y, oneesan.x, oneesan.y);
+            if (dist < 160) {
+                this.physics.moveToObject(oneesan, mugi, -240);
+            } else {
+                oneesan.body.setVelocity(oneesan.body.velocity.x * 0.9, oneesan.body.velocity.y * 0.9);
+            }
+        }
+    </script>
+</body>
+</html>
